@@ -3,7 +3,6 @@ from bs4 import BeautifulSoup
 
 
 BASE_URL = "https://www.buscape.com.br"
-search_term = "Caixa Para Ferramentas Tatica Camper 44x23x18cm Metasul"
 def build_url(search_term):
     return BASE_URL + "/search?q=" + search_term.replace(" ", "%20")
 
@@ -44,9 +43,28 @@ def scrape(product):
     product_number = next_script.text.split('"id":"product_api_')[1].split('"')[0]
 
     # Call the price history API from zoom
-    price_history_url = f'https://api-v1.zoom.com.br/restql/run-query/sherlock/product_price_history/1?tenant=DEFAULT&product_id={product_number}&period=days'
+    # price_history_url = f'https://api-v1.zoom.com.br/restql/run-query/sherlock/prices/1?tenant=DEFAULT&product_id={product_number}&period=days'
+    # price_history = response.json()['prices']['result']
+    price_history_url = f'https://api-v1.zoom.com.br/restql/run-query/sherlock/product_price_history/1?tenant=DEFAULT&product_id={product_number}&period=months'
+    print(price_history_url)
     response = requests.get(price_history_url)
     price_history = response.json()['product_price_history']['result']
     for tick in price_history:
         del tick['prodId']
     return price_history
+
+def get_price_stats(prices):
+    stats = {}
+    if len(prices) > 1:
+        lowest_price = min(prices, key=lambda x: x['price'])
+        stats['lowest_price'] = lowest_price['price']
+        stats['lowest_price_date'] = lowest_price['date']
+
+        avg_price = sum([x['price'] for x in prices]) / len(prices)
+        stats['avg_price'] = avg_price
+        stats['current_price'] = prices[-1]['price']
+    elif (len(prices) == 1):
+        stats['lowest_price'] = prices[0]
+        stats['avg_price'] = prices[0]
+        stats['current_price'] = prices[0]
+    return stats
